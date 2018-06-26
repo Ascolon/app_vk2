@@ -1,4 +1,5 @@
 import { Component, OnInit, NgZone } from '@angular/core';
+import { VK } from './index.js'
 
 @Component({
   selector: 'app-root',
@@ -7,47 +8,49 @@ import { Component, OnInit, NgZone } from '@angular/core';
 })
 export class AppComponent implements OnInit {
 
-  VK_API: any;
   currentUser = undefined;
   userId: number = -1;
   isAuth = false;
   constructor(private zone: NgZone) {
-    this.VK_API = window['VK'];
+
   }
 
  
   ngOnInit() {
-    this.VK_API.init({ apiId: 6615622 });
-    this.isLogged();
+    VK.init({ apiId: 6615622 });
+    if (localStorage.getItem('VKUser')) {
+      this.userId = +localStorage.getItem('VKUser');
+      this.userData(this.userId);
+    }
   }
 
 
   auth() {
-    this.VK_API.Auth.login((data) => {  
+    VK.Auth.login((data) => {  
       this.userId = data.session.user.id;
       this.userData(this.userId);
-    }, this.VK_API.access.FRIENDS);
+      localStorage.setItem('VKUser', this.userId.toString());
+    }, VK.access.FRIENDS);
   }
 
   isLogged() {
-    this.VK_API.Auth.getLoginStatus((data) => {
+    VK.Auth.getLoginStatus((data) => {
 
       if (data.response) {
         this.userId = data.session.mid;
         this.userData(this.userId);
       }
-
     });
   }
 
   userData (id) {
-    this.VK_API.Api.call('users.get', {
+    VK.Api.call('users.get', {
       user_ids: id, 
       v:"5.73",
       fields: 'online,photo_200'
     }, (data) => {
       this.currentUser = data.response[0];
-      this.VK_API.Api.call('friends.search', {
+      VK.Api.call('friends.search', {
         user_id: id,
         count: 5,
         fields: 'photo_100,online',
@@ -63,8 +66,9 @@ export class AppComponent implements OnInit {
   }
 
   logout() {
-    this.VK_API.Auth.logout(() => {
+    VK.Auth.logout(() => {
       this.isAuth = false;
+      localStorage.removeItem('VKUser');
     });
   }
 }
